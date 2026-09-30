@@ -1,4 +1,12 @@
 plugins { id 'com.android.application' }
+def releaseTag = System.getenv('RELEASE_TAG')
+def appVersion = releaseTag != null ? releaseTag : rootProject.file('VERSION').text.trim()
+def versionPattern = releaseTag != null ? /v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)/ : /(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)/
+def versionMatch = appVersion =~ versionPattern
+if (!versionMatch.matches()) throw new GradleException('Expected version MAJOR.MINOR.PATCH or release tag vMAJOR.MINOR.PATCH')
+def (major, minor, patch) = (1..3).collect { new BigInteger(versionMatch.group(it)) }
+def appCode = major * 1000000 + minor * 1000 + patch
+if (major > 2099 || minor > 999 || patch > 999 || appCode < 1) throw new GradleException('Unsupported Android versionCode range')
 android {
     namespace 'org.caustic.patcher'
     compileSdk 36
@@ -6,8 +14,8 @@ android {
         applicationId 'org.caustic.patcher'
         minSdk 30
         targetSdk 36
-        versionCode 2
-        versionName '0.1.1'
+        versionCode appCode.intValue()
+        versionName "${major}.${minor}.${patch}"
     }
     sourceSets.main.java.srcDirs += '../core/src'
     compileOptions {

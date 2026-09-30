@@ -114,3 +114,22 @@ No files deleted. MIDI-only overlay/assets are unchanged.
 | `analysis/AUDIO_LABEL.md` | Adds the focused change and validation record. |
 
 Recaustic recovery/forwarding build outputs and generated analysis evidence were refreshed by its existing build scripts. Existing unrelated working-tree edits were not staged or committed.
+
+## Tag-triggered GitHub APK releases
+
+| File | Change |
+| --- | --- |
+| `.github/workflows/release.yml` | Added stable version-tag builds, private signing-secret restoration, APK verification, cleanup and GitHub Release publishing. |
+| `.github/release-notes.md` | Added release download/use instructions and migration guidance for differently signed development builds. |
+| `VERSION` | Added the default local build version. |
+| `scripts/version.py` | Added strict tag parsing and monotonic Android version-code calculation. |
+| `scripts/ci-keystore.py` | Added secret decoding into private temporary files without printing key/password contents. |
+| `scripts/ci-test.sh` | Added portable release, MIDI and thread-fence checks that need no original APK. |
+| `tests/test_release.py` | Added version, malformed tag/secret and CI signing-fallback rejection tests. |
+| `scripts/build.sh` | Uses shared version metadata and SDK tool paths, requires CI signing credentials, clears generated intermediates, aligns before signing and verifies output. |
+| `app/build.gradle` | Uses the same version/tag scheme as command-line builds. |
+| `README.md` | Documents signing secrets, tag releases, version codes and development-to-release migration. |
+| `VALIDATION.md` | Records portable CI coverage and its limits. |
+| `CHANGES.md` | Adds this release-automation file inventory. |
+
+No files deleted. Private signing material remains ignored and is not committed.

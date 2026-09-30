@@ -40,3 +40,11 @@ The Gradle/Android Studio build path is provided but was not executed here. Devi
 - Recaustic recovery and forwarding build/package verification passes with strict mode-specific native hash checks.
 - Patcher version advanced to 0.1.1 / versionCode 2, using the same local patcher signing key.
 - Android installation and visual inspection of the renamed options entry are still pending. Repatch the original official APK through the updated patcher, preserving its local signing key, then install the output as an update.
+
+## Tag-triggered public releases
+
+The user subsequently confirmed that the renamed AAudio option works. Public release signing uses the new dedicated project key stored in repository Actions secrets, independently of the locally generated development key.
+
+Release checks cover stable-tag parsing, monotonic Android version codes, rejection of invalid/out-of-range tags, signing-secret decoding without logging values, and refusal to generate a development key in CI. Portable MIDI/parser and thread-fence regression checks run in Actions. Full APK patching and native-process/device tests still require the original input and an Android host and are not claimed as CI coverage.
+
+The workflow is statically checked with actionlint. Local build validation uses the existing development key (the new release password remains in GitHub secrets). The first public tag run verifies the actual secret-backed Linux release build before publishing its APK and checksum.

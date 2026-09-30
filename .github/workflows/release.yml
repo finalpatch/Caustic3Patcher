@@ -1,0 +1,94 @@
+name: Release Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+      REQUIRE_RELEASE_KEY: '1'
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Validate tag and install Android SDK components
+        run: |
+          python scripts/version.py
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
+            'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Check dependencies and run portable regression tests
+        run: sh scripts/ci-test.sh
+
+      - name: Restore release signing key
+        env:
+          PATCHER_KEYSTORE_BASE64: ${{ secrets.PATCHER_KEYSTORE_BASE64 }}
+          PATCHER_KEYSTORE_PASSWORD: ${{ secrets.PATCHER_KEYSTORE_PASSWORD }}
+        run: python scripts/ci-keystore.py
+
+      - name: Build and verify signed APK
+        run: |
+          sh scripts/build.sh
+          python - <<'PY'
+          import os, re, subprocess, sys
+          sys.path.insert(0, 'scripts')
+          from version import build_version
+          name, code = build_version()
+          tools = os.path.join(os.environ['ANDROID_SDK_ROOT'], 'build-tools/36.0.0')
+          badging = subprocess.check_output([tools + '/aapt', 'dump', 'badging', 'dist/caustic3-patcher.apk'], text=True)
+          package = next(line for line in badging.splitlines() if line.startswith('package:'))
+          assert "name='org.caustic.patcher'" in package
+          assert f"versionCode='{code}'" in package and f"versionName='{name}'" in package
+          assert 'application-debuggable' not in badging
+          print(f'Confirmed release package {name} ({code}), not debuggable.')
+          PY
+          cp dist/caustic3-patcher.apk "dist/Caustic3Patcher-${RELEASE_TAG}.apk"
+          cd dist
+          sha256sum "Caustic3Patcher-${RELEASE_TAG}.apk" > SHA256SUMS
+
+      - name: Remove temporary signing files
+        if: always()
+        run: |
+          if [ -n "${PATCHER_KEYSTORE:-}" ]; then
+            rm -f -- "$PATCHER_KEYSTORE" "$PATCHER_KEY_PASSWORD_FILE"
+            rmdir -- "$(dirname "$PATCHER_KEYSTORE")"
+          fi
+
+      - name: Publish verified APK and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$RELEASE_TAG" --json isDraft > "$RUNNER_TEMP/release-state.json" 2>/dev/null; then
+            python - <<'PY'
+          import json, os, sys
+          with open(os.path.join(os.environ['RUNNER_TEMP'], 'release-state.json')) as source:
+              if not json.load(source)['isDraft']:
+                  sys.exit('This release is already published; create a new version tag instead of replacing it.')
+          PY
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "$RELEASE_TAG" \
+              --notes-file .github/release-notes.md
+          fi
+          gh release upload "$RELEASE_TAG" "dist/Caustic3Patcher-${RELEASE_TAG}.apk" dist/SHA256SUMS --clobber
+          gh release edit "$RELEASE_TAG" --draft=false

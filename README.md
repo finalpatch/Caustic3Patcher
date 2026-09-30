@@ -60,6 +60,37 @@ Output: `dist/caustic3-patcher.apk`. The checked-in Gradle project is also provi
 
 For your own patcher release key, set both `PATCHER_KEYSTORE` and `PATCHER_KEY_PASSWORD_FILE`. The keystore should contain a single private signing entry. Never commit these files.
 
+## GitHub releases
+
+Pushing a stable version tag such as `v0.1.1` runs `.github/workflows/release.yml` on Ubuntu 24.04 with Java 21 and Android SDK 36. It checks the bundled dependencies, runs portable regression tests, builds/signs the patcher, verifies its signature/alignment/package version, and publishes a GitHub Release with `Caustic3Patcher-v0.1.1.apk` and `SHA256SUMS`. The workflow builds the checked-in patch assets; it does not download or redistribute the original Caustic APK and cannot run the proprietary-input integration/device tests.
+
+Configure these **repository Actions secrets** once:
+
+| Secret | Value |
+| --- | --- |
+| `PATCHER_KEYSTORE_BASE64` | Base64-encoded private patcher release keystore |
+| `PATCHER_KEYSTORE_PASSWORD` | The password entered when creating that keystore |
+
+Signing secrets are restored only to private runner temporary files and removed after building. CI fails if either secret is missing; it never creates a fallback signing identity. Keep an independent secure backup of the keystore and password. Repository variables and Git history are not appropriate storage for these values.
+
+The public release key is separate from the initial local development key. To migrate an installed development patcher with a different signature, first export its **Caustic signing key** through the app; replace the patcher and import that backup. Caustic itself need not be uninstalled. Future public patcher releases must reuse the same release key.
+
+For a new release, commit the intended changes, normally update `VERSION` to the next version, and push a tag:
+
+```sh
+git push origin main
+git tag -a v0.1.2 -m "Release 0.1.2"
+git push origin v0.1.2
+```
+
+The tag determines CI's app version even if `VERSION` differs. Local builds use `VERSION` unless `RELEASE_TAG` is explicitly set. Android version codes use `major * 1000000 + minor * 1000 + patch`; `v0.1.1` is code 1001. Supported components are major 0–2099 and minor/patch 0–999; `0.0.0`, leading zeros and prerelease/build suffixes are rejected. This scheme keeps increasing stable versions updatable. Publish a new version rather than moving a published tag. Reruns can finish an incomplete draft release but will not overwrite an already published release.
+
+Portable CI checks can also run locally:
+
+```sh
+sh scripts/ci-test.sh
+```
+
 To regenerate patch assets, supply the pinned original, Apktool 3.0.3, and Android NDK r29:
 
 ```sh
