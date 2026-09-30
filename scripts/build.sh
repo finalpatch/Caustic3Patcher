@@ -13,7 +13,7 @@ python scripts/check-vendor.py
 python -c 'from pathlib import Path; p=Path("app/src/main/AndroidManifest.xml"); Path("build/app/AndroidManifest.xml").write_text(p.read_text().replace("<manifest ", "<manifest package=\"org.caustic.patcher\" ", 1))'
 "$aapt_tool" compile --dir app/src/main/res -o build/app/resources.zip
 "$aapt_tool" link -o build/app/resources.apk -I "$android" --manifest build/app/AndroidManifest.xml \
-    --java build/app/generated --min-sdk-version 30 --target-sdk-version 36 --version-code 1 --version-name 0.1.0 \
+    --java build/app/generated --min-sdk-version 30 --target-sdk-version 36 --version-code 2 --version-name 0.1.1 \
     -A app/src/main/assets build/app/resources.zip
 python scripts/compile-java.py "$android"
 "$bt/d8" --release --min-api 30 --lib "$android" --output build/app/dex \

@@ -6,6 +6,7 @@
 
 #include "audio_fake_aaudio.h"
 int main() {
+    CHECK(JNI_METHOD(nativeHasAAudio)(nullptr, nullptr) == JNI_TRUE);
     JNINativeInterface table{};
     table.FindClass = find_class; table.ThrowNew = throw_new; table.DeleteLocalRef = delete_local;
     JNIEnv env{&table};

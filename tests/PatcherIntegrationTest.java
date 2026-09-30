@@ -41,7 +41,24 @@ public final class PatcherIntegrationTest {
         rejects(() -> PatchEngine.patch(original, work, new File(work, "tampered.apk"), true, false,
                 name -> name.equals("midi.dex") ? new ByteArrayInputStream(new byte[]{0}) : source.open(name), key, s -> {}), "tampered overlay accepted");
         byte[] originalDex;
-        try (ZipFile zip = new ZipFile(original)) { originalDex = PatchEngine.read(zip.getInputStream(zip.getEntry("classes.dex")), 16000000); }
+        byte[] originalEngine;
+        try (ZipFile zip = new ZipFile(original)) {
+            originalDex = PatchEngine.read(zip.getInputStream(zip.getEntry("classes.dex")), 16000000);
+            originalEngine = PatchEngine.read(zip.getInputStream(zip.getEntry("lib/arm64-v8a/libcaustic.so")), 16000000);
+        }
+        byte[] labeledEngine = AudioLabelPatch.apply(originalEngine);
+        check(originalEngine.length == labeledEngine.length, "label patch resized native engine");
+        check(PatchEngine.sha256(labeledEngine).equals("d815864d7bd041d29bcedf776ed7e5b0efd334d8522fb2d7a9734c5cd95ea60f"), "unexpected labeled engine hash");
+        int changedBytes = 0;
+        for (int i = 0; i < originalEngine.length; i++) if (originalEngine[i] != labeledEngine[i]) {
+            if (i < 0x44bed || i >= 0x44bed + 9) throw new AssertionError("native code or unrelated data changed");
+            changedBytes++;
+        }
+        check(changedBytes == 9, "unexpected native byte change count");
+        check(new String(labeledEngine, 0x44bed, 10, java.nio.charset.StandardCharsets.US_ASCII).equals("AAudio\0\0\0\0"), "wrong option label");
+        rejects(() -> AudioLabelPatch.apply(labeledEngine), "already modified engine accepted");
+        byte[] corruptEngine = originalEngine.clone(); corruptEngine[0] ^= 1;
+        rejects(() -> AudioLabelPatch.apply(corruptEngine), "unapproved engine accepted");
         byte[] overlay = PatchEngine.read(source.open("aaudio.dex"), 16000000);
         rejects(() -> DexPatches.apply(originalDex, Arrays.asList(overlay, overlay), false, new File(work, "conflict.dex")), "conflicting patches accepted");
         for (int mask = 1; mask <= 3; mask++) {
@@ -57,6 +74,10 @@ public final class PatcherIntegrationTest {
                     if (e.isDirectory() || name.startsWith("META-INF/") || name.equals("classes.dex")
                             || (name.startsWith("lib/") && !name.startsWith("lib/arm64-v8a/"))) continue;
                     check(result.getEntry(name) != null, "lost entry " + name);
+                    if (audio && name.equals("lib/arm64-v8a/libcaustic.so")) {
+                        check(Arrays.equals(labeledEngine, PatchEngine.read(result.getInputStream(result.getEntry(name)), 16000000)), "audio engine label not patched exactly");
+                        continue;
+                    }
                     check(Arrays.equals(PatchEngine.read(input.getInputStream(e), 100000000),
                             PatchEngine.read(result.getInputStream(result.getEntry(name)), 100000000)), "changed original entry " + name);
                 }

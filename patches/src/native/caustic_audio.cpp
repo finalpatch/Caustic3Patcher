@@ -238,6 +238,13 @@ extern "C" JNIEXPORT void JNICALL JNI_METHOD(SetNumBuffers)(JNIEnv *env, jclass,
 #endif
 }
 
+extern "C" JNIEXPORT jboolean JNICALL JNI_METHOD(nativeHasAAudio)(JNIEnv *, jclass) {
+#ifdef CAUSTIC_AAUDIO
+    return JNI_TRUE;
+#else
+    return JNI_FALSE;
+#endif
+}
 extern "C" JNIEXPORT jboolean JNICALL JNI_METHOD(nativeHasRecovery)(JNIEnv *, jclass) {
 #ifdef CAUSTIC_RECOVERY
     return JNI_TRUE;

@@ -4,7 +4,7 @@
 
 `MainActivity` presents the workflow and uses Android's document picker and installer. `PatchService` owns the background work and persists readiness metadata. `ApkProvider` grants read-only access to a single private output APK, without exposing the key, source APK or arbitrary paths.
 
-`PatchEngine` rechecks the whole original APK before every patch operation. It also checks bundled patch asset digests, merges selected DEX overlays, copies untouched ZIP entries, drops original signatures and unsupported native ABIs, and adds the AAudio helper when requested. AOSP apksig aligns stored native libraries to 16 KiB, signs with the user's key, and verifies the result before it is published atomically.
+`PatchEngine` rechecks the whole original APK before every patch operation. It also checks bundled patch asset digests, merges selected DEX overlays, copies untouched ZIP entries, drops original signatures and unsupported native ABIs, and adds the AAudio helper when requested. AAudio also makes one exact native UI label edit through `AudioLabelPatch`, with full-library input/output hash checks. AOSP apksig aligns stored native libraries to 16 KiB, signs with the user's key, and verifies the result before it is published atomically.
 
 `SigningKeys` handles local identity persistence and PKCS#12 backup/import. Key generation and signing use platform cryptographic providers. The small DER encoder constructs a self-signed certificate; the resulting certificate is parsed and its signature verified before storage. No custom encryption or signature primitive is implemented.
 
@@ -18,22 +18,22 @@ At runtime, dexlib2 merges members by descriptor and rejects selected overlays t
 
 ## Native engine hash guard
 
-The original `lib/arm64-v8a/libcaustic.so` is pinned by the AAudio Java bridge to:
+The original `lib/arm64-v8a/libcaustic.so` input is pinned to:
 
 ```text
 d74dc1a15178ff178d14a8d9b1fa1cf31a12cfe7af2db7d67814481eb9250b1d
 ```
 
-The adapter uses known engine offsets, symbol addresses and lifecycle assumptions. This guard is **unchanged** in the initial patcher, and both offered fixes leave the engine byte-for-byte intact. The whole-input APK hash and loaded-engine hash have different purposes: the first identifies the source release; the second confirms the engine the adapter is actually about to use.
+The adapter uses known engine offsets, symbol addresses and lifecycle assumptions. The AAudio patch replaces `OpenSL ES\0` at file offset `0x44bed` with `AAudio\0\0\0\0`. Only nine label bytes change; the library length and all engine code offsets are preserved. Its exact output hash is `d815864d7bd041d29bcedf776ed7e5b0efd334d8522fb2d7a9734c5cd95ea60f`. The Java bridge uses `nativeHasAAudio()` to require that hash for the AAudio helper and the original hash for the forwarding control. Each mode accepts only one engine image. MIDI-only retains the original engine and label. The whole-input APK hash and loaded-engine hash have different purposes: the first identifies the source release; the second confirms the engine the adapter is actually about to use.
 
-When adding native patches, revisit this explicitly:
+When adding further native patches, revisit this explicitly:
 
 1. Establish each native patch's expected input bytes and changed ranges; reject overlaps or incompatible combinations.
 2. Validate that the selected transformations preserve every offset, function signature and behavioral assumption used by AAudio.
 3. Calculate and approve the final native-engine hashes for compatible selections, and make the audio guard recognize only those outputs through an explicit compatibility mechanism.
 4. Add selection-combination tests and real device coverage before publishing.
 
-Do not disable the guard, accept arbitrary engine hashes, or automatically bless a native library merely because the patcher produced it. The precise mechanism for future native compatibility is intentionally deferred until the actual patches are known.
+Do not disable the guard, accept arbitrary engine hashes, or automatically bless a native library merely because the patcher produced it. The current label-only transformation is explicitly approved and pinned; broader native compatibility remains deferred until the actual patches are known.
 
 ## Provenance
 

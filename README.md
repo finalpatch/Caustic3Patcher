@@ -33,9 +33,9 @@ Subsequent compatible builds retain `com.singlecellsoftware.caustic` and use you
 
 **MIDI:** the Android MIDI input bridge, source picker, reconnect behavior and parser from `recaustic`. USB and exposed virtual MIDI 1.0 are the primary scope. Bluetooth discovery, MIDI 2.0 and general SysEx are not added.
 
-**AAudio:** the latest recovery variant from that investigation. Caustic's existing **OpenSL ES** option selects AAudio; the native label is unchanged. AudioTrack and AudioRecord remain available. The engine/client remain at 44.1 kHz. Includes minimum-aware latency presets, stream lifecycle guards and route recovery. Selecting only AAudio leaves the original MIDI behavior, including its crash, intact.
+**AAudio:** the latest recovery variant from that investigation. Caustic's audio options show **AAudio** in place of **OpenSL ES** when this patch is selected. AudioTrack and AudioRecord remain available. The engine/client remain at 44.1 kHz. Includes minimum-aware latency presets, stream lifecycle guards and route recovery. Selecting only AAudio leaves the original MIDI behavior, including its crash, intact.
 
-Both patches preserve the original ARM64 native engine, Android manifest, resources and assets. Unsupported native ABI directories are removed from the output.
+Both patches preserve the Android manifest, resources and assets. MIDI-only preserves the original ARM64 native engine; AAudio changes only its nine-byte options label, preserving engine code and offsets. Unsupported native ABI directories are removed from the output.
 
 ## Signing and backup
 

@@ -77,6 +77,10 @@ public final class PatchEngine {
                     if (!names.add(name)) throw new IOException("Duplicate APK entry");
                     if (e.isDirectory() || name.startsWith("META-INF/") || name.equals("classes.dex")
                             || (name.startsWith("lib/") && !name.startsWith("lib/arm64-v8a/"))) continue;
+                    if (audio && name.equals("lib/arm64-v8a/libcaustic.so")) {
+                        add(out, name, AudioLabelPatch.apply(read(input.getInputStream(e), 16 * 1024 * 1024)));
+                        continue;
+                    }
                     ZipEntry copy = new ZipEntry(name); copy.setTime(315532800000L);
                     // Native libraries and resources must remain uncompressed. Apksig performs alignment.
                     if (e.getMethod() == ZipEntry.STORED || name.endsWith(".so") || name.equals("resources.arsc")) {

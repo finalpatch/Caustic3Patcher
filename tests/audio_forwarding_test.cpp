@@ -46,6 +46,7 @@ static void capture_resample(JNIEnv *env, jclass owner, jboolean value, jint fra
 }
 
 int main(int argc, char **argv) {
+    CHECK(JNI_METHOD(nativeHasAAudio)(nullptr, nullptr) == JNI_FALSE);
     CHECK(argc == 3);
     JNINativeInterface table{};
     table.FindClass = find_class;

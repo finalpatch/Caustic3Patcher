@@ -46,7 +46,7 @@ public final class MainActivity extends Activity {
         midi = check("MIDI crash fix", "midi");
         text("Replaces the MIDI input bridge with Android’s MIDI API. Includes a source picker and reconnect support.", 15, false);
         audio = check("AAudio playback path", "audio");
-        text("Uses AAudio for the existing “OpenSL ES” setting in Caustic. Includes latency presets and route recovery. AudioTrack remains available. AAudio-only does not fix the MIDI crash.", 15, false);
+        text("Adds the “AAudio” choice in Caustic’s audio options, replacing OpenSL ES. Includes latency presets and route recovery. AudioTrack remains available. AAudio-only does not fix the MIDI crash.", 15, false);
         text("3 · Preserve your signing key", 21, true);
         text("Your key is created on this device and reused for updates. Export it before installing. Uninstalling this patcher or clearing its storage deletes the local key. Keep the backup and password; import them after reinstalling or moving devices.", 15, false);
         keyInfo = text("", 13, false);

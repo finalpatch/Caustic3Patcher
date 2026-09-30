@@ -36,7 +36,10 @@ if os.environ.get('CAUSTIC_AUDIO_MODE') in ('aaudio', 'recovery'):
     for name, transform in [('AudioEngine', lambda text: engine_patch(text, recovery=os.environ.get('CAUSTIC_AUDIO_MODE') == 'recovery')), ('OutputAudioLoop', loop_patch)]:
         path = root / f'com/singlecellsoftware/caustic/{name}.smali'
         path.write_text(transform(path.read_text()))
+    from patch_audio_label import patch_engine
+    engine = work / 'source/lib/arm64-v8a/libcaustic.so'
+    engine.write_bytes(patch_engine(engine.read_bytes()))
 
 shutil.copyfile(work / 'native/libcaustic_audio.so',
                 work / 'source/lib/arm64-v8a/libcaustic_audio.so')
-print('Audio patch: 8 call owners redirected; 1 initialization call; original engine untouched.')
+print('Audio patch: 8 call owners redirected; 1 initialization call; engine code unchanged, AAudio label applied only in AAudio modes.')

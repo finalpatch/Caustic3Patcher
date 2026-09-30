@@ -9,8 +9,10 @@ import java.util.zip.ZipFile;
 
 /** Pinned engine bridge for forwarding and AAudio experimental builds. */
 public final class AudioBackend {
-    private static final String ENGINE_SHA256 =
+    private static final String ORIGINAL_ENGINE_SHA256 =
             "d74dc1a15178ff178d14a8d9b1fa1cf31a12cfe7af2db7d67814481eb9250b1d";
+    private static final String AAUDIO_ENGINE_SHA256 =
+            "d815864d7bd041d29bcedf776ed7e5b0efd334d8522fb2d7a9734c5cd95ea60f";
     private static boolean initialized;
 
     private AudioBackend() {}
@@ -42,7 +44,9 @@ public final class AudioBackend {
                 actual.append(Character.forDigit((value >>> 4) & 15, 16));
                 actual.append(Character.forDigit(value & 15, 16));
             }
-            if (!ENGINE_SHA256.contentEquals(actual)) {
+            // Each compiled backend accepts exactly its own engine image.
+            String expected = nativeHasAAudio() ? AAUDIO_ENGINE_SHA256 : ORIGINAL_ENGINE_SHA256;
+            if (!expected.contentEquals(actual)) {
                 throw new IllegalStateException("Unsupported Caustic audio engine hash");
             }
             Class<?> original = Class.forName("com.singlecellsoftware.OpenSLIO", false,
@@ -74,6 +78,7 @@ public final class AudioBackend {
         }
     }
 
+    private static native boolean nativeHasAAudio();
     private static native boolean nativeHasRecovery();
     static native void nativeRouteChanged();
     private static native String nativeLoadedLibraryPath();

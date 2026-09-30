@@ -70,3 +70,47 @@ All listed files are added. No pre-existing project files were modified or delet
 | `vendor/guava-27.1-android.jar` | Bundles dexlib2’s Android-compatible collection dependency. |
 
 Validation: 7,939 patcher integration assertions, 4,064 complete-class round-trip comparisons, MIDI/audio regression suites, output signatures and 16-KiB APK alignment pass. See [VALIDATION.md](VALIDATION.md) for remaining Android UI/install and device coverage.
+
+## Version 0.1.1 — AAudio options label
+
+| File | Change |
+| --- | --- |
+| `core/src/org/caustic/patcher/core/AudioLabelPatch.java` | Added exact native string transformation with full input/output hash verification. |
+| `core/src/org/caustic/patcher/core/PatchEngine.java` | Applies the native label edit only when AAudio is selected. |
+| `patches/scripts/patch_audio_label.py` | Added equivalent build-time transformation for both projects. |
+| `patches/scripts/patch_audio.py` | Applies the native label in AAudio/recovery builds; updates its summary message. |
+| `patches/src/com/singlecellsoftware/caustic/audio/AudioBackend.java` | Requires the exact engine hash associated with the compiled backend. |
+| `patches/src/native/caustic_audio.cpp` | Exposes whether the helper was compiled with AAudio. |
+| `app/src/main/assets/patches/aaudio.dex` | Regenerated the bridge overlay with the updated hash guard. |
+| `app/src/main/assets/patches/libcaustic_audio.so` | Rebuilt helper with backend detection. |
+| `app/src/main/assets/patches/checksums.properties` | Updated hashes of regenerated assets. |
+| `patches/SOURCE-SHA256SUMS` | Updated source snapshot hashes, including the new label transform. |
+| `app/src/main/java/org/caustic/patcher/MainActivity.java` | Describes the renamed AAudio option. |
+| `app/build.gradle` | Advances the patcher version to 0.1.1 / 2. |
+| `scripts/build.sh` | Applies the same version bump to the validated CLI build. |
+| `tests/PatcherIntegrationTest.java` | Verifies exact native edits, rejection paths, and independent patch selections. |
+| `tests/audio_forwarding_test.cpp` | Verifies forwarding backend detection. |
+| `tests/audio_lifecycle_test.cpp` | Verifies AAudio backend detection. |
+| `ARCHITECTURE.md` | Documents the approved label-only native transformation and strict hash contract. |
+| `README.md` | Updates displayed-option instructions and native preservation scope. |
+| `VALIDATION.md` | Records new automated checks, prior device evidence and remaining visual acceptance. |
+| `CHANGES.md` | Adds this file-by-file change record. |
+
+No files deleted. MIDI-only overlay/assets are unchanged.
+
+### Synchronized in `~/code/recaustic`
+
+| File | Change |
+| --- | --- |
+| `scripts/patch_audio_label.py` | Added the same exact native label transform. |
+| `scripts/patch_audio.py` | Applies the label only in AAudio modes. |
+| `src/com/singlecellsoftware/caustic/audio/AudioBackend.java` | Mirrors the strict backend-specific native hashes. |
+| `src/native/caustic_audio.cpp` | Mirrors backend detection. |
+| `tests/audio_forwarding_test.cpp` | Mirrors the forwarding detection check. |
+| `tests/audio_lifecycle_test.cpp` | Mirrors the AAudio detection check. |
+| `scripts/verify_audio.py` | Requires exact native label bytes/hash and records output-engine identity. |
+| `scripts/build_audio.sh` | Includes the label transform in source-checksum evidence. |
+| `README.md` | Documents the updated native label contract. |
+| `analysis/AUDIO_LABEL.md` | Adds the focused change and validation record. |
+
+Recaustic recovery/forwarding build outputs and generated analysis evidence were refreshed by its existing build scripts. Existing unrelated working-tree edits were not staged or committed.
