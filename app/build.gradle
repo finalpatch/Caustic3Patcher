@@ -1,0 +1,19 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'org.caustic.patcher'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'org.caustic.patcher'
+        minSdk 30
+        targetSdk 36
+        versionCode 1
+        versionName '0.1.0'
+    }
+    sourceSets.main.java.srcDirs += '../core/src'
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    packaging.resources.excludes += ['META-INF/**']
+}
+dependencies { implementation fileTree(dir: '../vendor', include: ['*.jar']) }

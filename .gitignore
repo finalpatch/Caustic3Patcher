@@ -1,0 +1,12 @@
+/build/
+/dist/
+/local.properties
+/signing/
+/tools/apktool*.jar
+__pycache__/
+*.pyc
+.gradle/
+app/build/
+*.apk
+*.p12
+*.keystore
