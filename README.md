@@ -35,7 +35,7 @@ Subsequent compatible builds retain `com.singlecellsoftware.caustic` and use you
 
 **AAudio:** the latest recovery variant from that investigation. Caustic's audio options show **AAudio** in place of **OpenSL ES** when this patch is selected. AudioTrack and AudioRecord remain available. The engine/client remain at 44.1 kHz. Includes minimum-aware latency presets, stream lifecycle guards and route recovery. Selecting only AAudio leaves the original MIDI behavior, including its crash, intact.
 
-**Graphics pacing:** skips the native busy-wait frame limiter and lets the existing display presentation path pace rendering, without an artificial 60 FPS cap. Independent of MIDI and AAudio. The upstream experiment measured greatly reduced GL-thread CPU at about 60 FPS on one device; 120 Hz behavior and sustained playback/recording/export remain untested.
+**Graphics pacing:** skips the native busy-wait frame limiter and lets the existing display presentation path pace rendering, without an artificial 60 FPS cap. Independent of MIDI and AAudio. Removes the busy-wait that can saturate a CPU core. See [VALIDATION.md](VALIDATION.md) for device results and remaining coverage.
 
 All three patches preserve the Android manifest, resources and assets. MIDI-only preserves the original ARM64 native engine; AAudio changes only its nine-byte options label, and Graphics pacing replaces one four-byte branch instruction. Library length and engine offsets are preserved. The patcher verifies the original APK and exact native patch inputs/outputs; the audio bridge retains native initialization guards without whole-library runtime hashing. Unsupported native ABI directories are removed from the output.
 

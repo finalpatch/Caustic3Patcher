@@ -61,4 +61,6 @@ Portable release, MIDI parser and thread-fence checks pass. The patcher APK buil
 
 The user subsequently confirmed the new option works and launched patched Caustic. A 20.033-second ADB sample of process 30095 on the connected Samsung SM-F966B measured graphics thread `GLThread 137` at **2.8% of one CPU core**, AAudio at **2.0%**, and the process total at **7.1%**. Thread CPU was calculated from `/proc/PID/task/TID/stat` deltas at 100 ticks/second; no threads appeared or exited. The graphics thread was sleeping at both endpoints. This confirms no core saturation during that sample; it does not measure frame rate or establish matched-screen performance against the upstream baseline. Raw evidence is retained locally in ignored `build/live-graphics-cpu.json`.
 
-Remaining device coverage includes all selection combinations, 120 Hz pacing, sustained playback, recording, export and background/resume. The upstream graphics experiment's approximate 60 FPS remains prior evidence, not a new frame-rate measurement of this output.
+The user also tested on the Galaxy Z Fold7 inner display set to 120 Hz and reported no observed issues. This is user-reported functional testing, not a measured frame-rate result.
+
+Remaining device coverage includes all selection combinations, measured 120 Hz frame pacing, sustained playback, recording, export and background/resume. The upstream graphics experiment's approximate 60 FPS remains prior evidence, not a new frame-rate measurement of this output.
