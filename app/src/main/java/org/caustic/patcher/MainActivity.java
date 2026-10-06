@@ -17,7 +17,7 @@ public final class MainActivity extends Activity {
     private static final int PICK = 1, SAVE = 2, EXPORT = 3, IMPORT = 4;
     private static final String BACKUP = "First installation of patched Caustic requires uninstalling the original app because its signing certificate differs. Uninstalling can erase app data.\n\nBack up important songs, presets, samples and other files before uninstalling. Copy accessible Caustic files to a PC, or use Caustic’s built-in FTP server: main menu → Tools. Confirm you can open your backup. A PC connection does not expose all private app data.\n\nLater patched versions can update in place when you keep the same signing key. We will never uninstall Caustic for you.";
     private TextView status, source, keyInfo, result;
-    private CheckBox midi, audio;
+    private CheckBox midi, audio, graphics;
     private Button choose, patch, save, install, export, importKey;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable refresh = new Runnable() { public void run() { render(); handler.postDelayed(this, 500); } };
@@ -47,6 +47,8 @@ public final class MainActivity extends Activity {
         text("Replaces the MIDI input bridge with Android’s MIDI API. Includes a source picker and reconnect support.", 15, false);
         audio = check("AAudio playback path", "audio");
         text("Adds the “AAudio” choice in Caustic’s audio options, replacing OpenSL ES. Includes latency presets and route recovery. AudioTrack remains available. AAudio-only does not fix the MIDI crash.", 15, false);
+        graphics = check("Graphics pacing", "graphics");
+        text("Skips the busy-wait frame limiter and lets display presentation pace rendering, without a 60 FPS cap. Experimental; 120 Hz behavior is not yet tested.", 15, false);
         text("3 · Preserve your signing key", 21, true);
         text("Your key is created on this device and reused for updates. Export it before installing. Uninstalling this patcher or clearing its storage deletes the local key. Keep the backup and password; import them after reinstalling or moving devices.", 15, false);
         keyInfo = text("", 13, false);
@@ -56,7 +58,7 @@ public final class MainActivity extends Activity {
         text(BACKUP, 15, false);
         patch = button("Apply selected patches", () -> {
             Intent task = new Intent(this, PatchService.class).setAction("patch")
-                    .putExtra("midi", midi.isChecked()).putExtra("audio", audio.isChecked());
+                    .putExtra("midi", midi.isChecked()).putExtra("audio", audio.isChecked()).putExtra("graphics", graphics.isChecked());
             start(task);
         });
         status = text("", 16, true);
@@ -104,8 +106,8 @@ public final class MainActivity extends Activity {
         String fingerprint = p.getString("fingerprint", "");
         keyInfo.setText(fingerprint.isEmpty() ? "Preparing local signing key…" : "Certificate SHA-256:\n" + fingerprint +
                 (fingerprint.equals(p.getString("backedUp", "")) ? "\nBackup exported or imported." : "\nBackup not yet exported."));
-        choose.setEnabled(idle); midi.setEnabled(idle); audio.setEnabled(idle);
-        patch.setEnabled(idle && arm && verified && !fingerprint.isEmpty() && (midi.isChecked() || audio.isChecked()));
+        choose.setEnabled(idle); midi.setEnabled(idle); audio.setEnabled(idle); graphics.setEnabled(idle);
+        patch.setEnabled(idle && arm && verified && !fingerprint.isEmpty() && (midi.isChecked() || audio.isChecked() || graphics.isChecked()));
         export.setEnabled(idle && !fingerprint.isEmpty()); importKey.setEnabled(idle);
         save.setEnabled(idle && ready); install.setEnabled(idle && ready && arm);
         result.setText(ready ? "Output: " + p.getString("resultPatches", "") + "\nAPK SHA-256:\n" + p.getString("resultHash", "") : "");

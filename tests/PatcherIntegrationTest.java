@@ -37,8 +37,8 @@ public final class PatcherIntegrationTest {
         File sameSize = new File(work, "same-size-wrong.apk");
         try (RandomAccessFile f = new RandomAccessFile(sameSize, "rw")) { f.setLength(PatchEngine.ORIGINAL_SIZE); }
         rejects(() -> PatchEngine.verifyOriginal(sameSize), "same-size bad hash accepted"); sameSize.delete();
-        rejects(() -> PatchEngine.patch(original, work, new File(work, "none.apk"), false, false, source, key, s -> {}), "empty selection accepted");
-        rejects(() -> PatchEngine.patch(original, work, new File(work, "tampered.apk"), true, false,
+        rejects(() -> PatchEngine.patch(original, work, new File(work, "none.apk"), false, false, false, source, key, s -> {}), "empty selection accepted");
+        rejects(() -> PatchEngine.patch(original, work, new File(work, "tampered.apk"), true, false, false,
                 name -> name.equals("midi.dex") ? new ByteArrayInputStream(new byte[]{0}) : source.open(name), key, s -> {}), "tampered overlay accepted");
         byte[] originalDex;
         byte[] originalEngine;
@@ -59,12 +59,53 @@ public final class PatcherIntegrationTest {
         rejects(() -> AudioLabelPatch.apply(labeledEngine), "already modified engine accepted");
         byte[] corruptEngine = originalEngine.clone(); corruptEngine[0] ^= 1;
         rejects(() -> AudioLabelPatch.apply(corruptEngine), "unapproved engine accepted");
+        for (byte[] input : new byte[][]{originalEngine, labeledEngine}) {
+            byte[] snapshot = input.clone();
+            byte[] paced = GraphicsPacingPatch.apply(input);
+            check(paced.length == input.length, "graphics patch resized engine");
+            byte[] expected = input.clone();
+            System.arraycopy(new byte[]{0x0e, 0, 0, 0x14}, 0, expected, 0x2eabd0, 4);
+            check(Arrays.equals(expected, paced), "graphics patch changed unrelated bytes");
+            check(Arrays.equals(input, snapshot), "input changed");
+            int instruction = java.nio.ByteBuffer.wrap(paced, 0x2eabd0, 4)
+                    .order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt();
+            check(0x2eebd0 + ((instruction & 0x03ffffff) << 2) == 0x2eec08,
+                    "graphics branch misses original timestamp store");
+            rejects(() -> GraphicsPacingPatch.apply(paced), "repeated graphics patch accepted");
+        }
+        rejects(() -> GraphicsPacingPatch.apply(corruptEngine), "corrupt graphics engine accepted");
+        rejects(() -> GraphicsPacingPatch.apply(new byte[0]), "empty graphics engine accepted");
         byte[] overlay = PatchEngine.read(source.open("aaudio.dex"), 16000000);
+        boolean discovery = false, initialization = false;
+        for (ClassDef c : new DexBackedDexFile(null, overlay).getClasses()) {
+            if (!c.getType().equals("Lcom/singlecellsoftware/caustic/audio/AudioBackend;")) continue;
+            for (org.jf.dexlib2.iface.Field field : c.getFields())
+                check(!field.getName().contains("SHA256"), "runtime hash constant retained");
+            for (org.jf.dexlib2.iface.Method method : c.getMethods()) {
+                check(!method.getName().equals("hash"), "runtime hash helper retained");
+                if (method.getImplementation() == null) continue;
+                for (org.jf.dexlib2.iface.instruction.Instruction instruction : method.getImplementation().getInstructions()) {
+                    if (!(instruction instanceof org.jf.dexlib2.iface.instruction.ReferenceInstruction)) continue;
+                    org.jf.dexlib2.iface.reference.Reference ref =
+                            ((org.jf.dexlib2.iface.instruction.ReferenceInstruction) instruction).getReference();
+                    if (ref instanceof org.jf.dexlib2.iface.reference.MethodReference) {
+                        org.jf.dexlib2.iface.reference.MethodReference called =
+                                (org.jf.dexlib2.iface.reference.MethodReference) ref;
+                        check(!called.getDefiningClass().equals("Ljava/security/MessageDigest;"), "runtime digest retained");
+                        if (called.getName().equals("nativeLoadedLibraryPath")) discovery = true;
+                        if (called.getName().equals("nativeInitialize")) initialization = true;
+                    }
+                }
+            }
+        }
+        check(discovery && initialization, "native initialization guards removed");
         rejects(() -> DexPatches.apply(originalDex, Arrays.asList(overlay, overlay), false, new File(work, "conflict.dex")), "conflicting patches accepted");
-        for (int mask = 1; mask <= 3; mask++) {
-            boolean midi = (mask & 1) != 0, audio = (mask & 2) != 0;
+        for (int mask = 1; mask <= 7; mask++) {
+            boolean midi = (mask & 1) != 0, audio = (mask & 2) != 0, graphics = (mask & 4) != 0;
+            byte[] expectedEngine = audio ? labeledEngine : originalEngine;
+            if (graphics) expectedEngine = GraphicsPacingPatch.apply(expectedEngine);
             File output = new File(work, "variant-" + mask + ".apk");
-            PatchEngine.patch(original, work, output, midi, audio, source, imported, System.out::println);
+            PatchEngine.patch(original, work, output, midi, audio, graphics, source, imported, System.out::println);
             try (ZipFile input = new ZipFile(original); ZipFile result = new ZipFile(output)) {
                 check((result.getEntry("lib/arm64-v8a/libcaustic_audio.so") != null) == audio, "audio helper selection");
                 check(result.getEntry("lib/armeabi-v7a/libcaustic.so") == null, "unsupported ABI retained");
@@ -74,14 +115,15 @@ public final class PatcherIntegrationTest {
                     if (e.isDirectory() || name.startsWith("META-INF/") || name.equals("classes.dex")
                             || (name.startsWith("lib/") && !name.startsWith("lib/arm64-v8a/"))) continue;
                     check(result.getEntry(name) != null, "lost entry " + name);
-                    if (audio && name.equals("lib/arm64-v8a/libcaustic.so")) {
-                        check(Arrays.equals(labeledEngine, PatchEngine.read(result.getInputStream(result.getEntry(name)), 16000000)), "audio engine label not patched exactly");
+                    if (name.equals("lib/arm64-v8a/libcaustic.so")) {
+                        check(Arrays.equals(expectedEngine, PatchEngine.read(result.getInputStream(result.getEntry(name)), 16000000)), "native patch composition differs");
                         continue;
                     }
                     check(Arrays.equals(PatchEngine.read(input.getInputStream(e), 100000000),
                             PatchEngine.read(result.getInputStream(result.getEntry(name)), 100000000)), "changed original entry " + name);
                 }
                 byte[] dex = PatchEngine.read(result.getInputStream(result.getEntry("classes.dex")), 16000000);
+                if (!midi && !audio) check(Arrays.equals(originalDex, dex), "graphics-only changed original DEX");
                 boolean picker = false, backend = false;
                 for (ClassDef c : new DexBackedDexFile(null, dex).getClasses()) {
                     if (c.getType().equals("Lcom/singlecellsoftware/caustic/midi/MidiSidekick;"))
@@ -92,6 +134,6 @@ public final class PatcherIntegrationTest {
             }
             check(output.isFile(), "output missing");
         }
-        System.out.println("PASS: " + checks + " integration checks; all three variants signed and verified.");
+        System.out.println("PASS: " + checks + " integration checks; all seven variants signed and verified.");
     }
 }

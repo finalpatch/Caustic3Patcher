@@ -52,9 +52,9 @@ public final class PatchEngine {
         if (!sha256(bytes).equals(manifest.getProperty(name))) throw new IOException("Bundled patch integrity check failed: " + name);
         return bytes;
     }
-    public static void patch(File original, File work, File output, boolean midi, boolean audio,
+    public static void patch(File original, File work, File output, boolean midi, boolean audio, boolean graphics,
                              Assets assets, SigningKeys.Identity identity, Progress progress) throws Exception {
-        if (!midi && !audio) throw new IOException("Select at least one patch.");
+        if (!midi && !audio && !graphics) throw new IOException("Select at least one patch.");
         progress.report("Verifying official APK…"); verifyOriginal(original);
         if (!work.isDirectory() && !work.mkdirs()) throw new IOException("Cannot create workspace");
         Properties manifest = new Properties();
@@ -67,7 +67,14 @@ public final class PatchEngine {
         boolean success = false;
         try (ZipFile input = new ZipFile(original)) {
             progress.report("Applying selected patches…");
-            DexPatches.apply(read(input.getInputStream(input.getEntry("classes.dex")), 16 * 1024 * 1024), overlays, midi, dex);
+            if (overlays.isEmpty()) {
+                try (InputStream in = input.getInputStream(input.getEntry("classes.dex"));
+                     OutputStream out = new FileOutputStream(dex)) {
+                    copy(in, out, 16 * 1024 * 1024);
+                }
+            } else {
+                DexPatches.apply(read(input.getInputStream(input.getEntry("classes.dex")), 16 * 1024 * 1024), overlays, midi, dex);
+            }
             progress.report("Packaging APK…");
             try (ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(unsigned)))) {
                 Set<String> names = new HashSet<>();
@@ -77,8 +84,11 @@ public final class PatchEngine {
                     if (!names.add(name)) throw new IOException("Duplicate APK entry");
                     if (e.isDirectory() || name.startsWith("META-INF/") || name.equals("classes.dex")
                             || (name.startsWith("lib/") && !name.startsWith("lib/arm64-v8a/"))) continue;
-                    if (audio && name.equals("lib/arm64-v8a/libcaustic.so")) {
-                        add(out, name, AudioLabelPatch.apply(read(input.getInputStream(e), 16 * 1024 * 1024)));
+                    if ((audio || graphics) && name.equals("lib/arm64-v8a/libcaustic.so")) {
+                        byte[] engine = read(input.getInputStream(e), 16 * 1024 * 1024);
+                        if (audio) engine = AudioLabelPatch.apply(engine);
+                        if (graphics) engine = GraphicsPacingPatch.apply(engine);
+                        add(out, name, engine);
                         continue;
                     }
                     ZipEntry copy = new ZipEntry(name); copy.setTime(315532800000L);

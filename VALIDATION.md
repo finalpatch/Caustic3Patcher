@@ -48,3 +48,17 @@ The user subsequently confirmed that the renamed AAudio option works. Public rel
 Release checks cover stable-tag parsing, monotonic Android version codes, rejection of invalid/out-of-range tags, signing-secret decoding without logging values, and refusal to generate a development key in CI. Portable MIDI/parser and thread-fence regression checks run in Actions. Full APK patching and native-process/device tests still require the original input and an Android host and are not claimed as CI coverage.
 
 The workflow is statically checked with actionlint. Local build validation uses the existing development key (the new release password remains in GitHub secrets). The first public tag run verifies the actual secret-backed Linux release build before publishing its APK and checksum.
+
+## Graphics pacing integration — 2026-10-06
+
+Added an independent graphics selection, composing with MIDI and AAudio across all seven nonempty combinations. The native branch bypass retains the timestamp store; exact original and AAudio-labelled inputs and both graphics outputs are pinned. Graphics-only output preserves the original DEX byte-for-byte.
+
+The bundled AudioBackend source now matches the upstream hash-removal follow-up. Its rebuilt DEX is checked for absent runtime hash constants/helper/MessageDigest calls and retained native image discovery and initialization calls. Source and asset checksum inventories verify.
+
+All **18,560 integration assertions** pass across seven selections, including exact native byte preservation, branch destination, wrong/repeated input rejection, independent overlay selection and signatures. All **9,474 disassembled class comparisons** match independently rebuilt expectations. Each generated APK passes signature and 16 KiB alignment verification. Existing native PCM, lifecycle, recovery and actual engine/helper forwarding tests pass.
+
+Portable release, MIDI parser and thread-fence checks pass. The patcher APK builds, signs and aligns successfully using the existing local development key; its version remains 0.1.1 / code 1001. No release was published; automated build/test runs did not change installed apps.
+
+The user subsequently confirmed the new option works and launched patched Caustic. A 20.033-second ADB sample of process 30095 on the connected Samsung SM-F966B measured graphics thread `GLThread 137` at **2.8% of one CPU core**, AAudio at **2.0%**, and the process total at **7.1%**. Thread CPU was calculated from `/proc/PID/task/TID/stat` deltas at 100 ticks/second; no threads appeared or exited. The graphics thread was sleeping at both endpoints. This confirms no core saturation during that sample; it does not measure frame rate or establish matched-screen performance against the upstream baseline. Raw evidence is retained locally in ignored `build/live-graphics-cpu.json`.
+
+Remaining device coverage includes all selection combinations, 120 Hz pacing, sustained playback, recording, export and background/resume. The upstream graphics experiment's approximate 60 FPS remains prior evidence, not a new frame-rate measurement of this output.

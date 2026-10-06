@@ -50,6 +50,13 @@ public final class PatchService extends Service {
         });
         return START_NOT_STICKY;
     }
+    private static java.util.List<String> selectedPatches(boolean midi, boolean audio, boolean graphics) {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        if (midi) names.add("MIDI");
+        if (audio) names.add("AAudio");
+        if (graphics) names.add("Graphics pacing");
+        return names;
+    }
     private SigningKeys.Identity identity() throws Exception {
         SigningKeys.Identity key = SigningKeys.loadOrCreate(keyFile(this));
         prefs(this).edit().putString("fingerprint", key.fingerprint()).commit();
@@ -78,15 +85,16 @@ public final class PatchService extends Service {
             if (!Arrays.asList(Build.SUPPORTED_ABIS).contains("arm64-v8a")) throw new IOException("These patches require an ARM64 device.");
             File pending = new File(getFilesDir(), "patched.pending.apk");
             boolean midi = task.getBooleanExtra("midi", false), audio = task.getBooleanExtra("audio", false);
+            boolean graphics = task.getBooleanExtra("graphics", false);
             prefs(this).edit().remove("resultHash").commit();
             if (getFilesDir().getUsableSpace() < 200L * 1024 * 1024) throw new IOException("At least 200 MB of free storage is needed.");
             SigningKeys.Identity key = identity();
             PatchEngine.patch(new File(getFilesDir(), "original.apk"), new File(getCacheDir(), "patch-work"), pending,
-                    midi, audio, name -> getAssets().open("patches/" + name), key, this::progress);
+                    midi, audio, graphics, name -> getAssets().open("patches/" + name), key, this::progress);
             String hash = PatchEngine.hash(pending);
             Files.move(pending.toPath(), output(this).toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             prefs(this).edit().putString("resultHash", hash).putString("resultSigner", key.fingerprint())
-                    .putString("resultPatches", midi && audio ? "MIDI + AAudio" : midi ? "MIDI" : "AAudio").commit();
+                    .putString("resultPatches", String.join(" + ", selectedPatches(midi, audio, graphics))).commit();
             message = "Patched APK verified and ready to save or install."; return;
         }
         if ("save".equals(action)) {

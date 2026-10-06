@@ -1,6 +1,6 @@
 # Unofficial Caustic 3 Patcher
 
-An offline Android app for applying the community MIDI crash repair and AAudio playback replacement to the supported Caustic 3 APK. These fixes are shared with the author's permission as an **unofficial patcher**, not an official Caustic release. [Permission reference](https://www.reddit.com/r/Caustic3/comments/1n32r1u/comment/pcy12ts/).
+An offline Android app for applying the community MIDI crash repair, AAudio playback replacement and graphics pacing mod to the supported Caustic 3 APK. These fixes are shared with the author's permission as an **unofficial patcher**, not an official Caustic release. [Permission reference](https://www.reddit.com/r/Caustic3/comments/1n32r1u/comment/pcy12ts/).
 
 The patcher requires Android 11/API 30 or newer and an ARM64 device. It does not need root, a computer, Termux, internet access, or external tools at runtime. It has no internet or broad storage permission. Files are selected through Android's document picker.
 
@@ -18,7 +18,7 @@ The pin comes from the supplied `recaustic` investigation; the local original wa
 ## Use
 
 1. Choose the official APK. The patcher copies it to private storage and verifies its full hash.
-2. Select MIDI, AAudio, or both. At least one must be selected.
+2. Select any combination of MIDI, AAudio and Graphics pacing. At least one must be selected.
 3. Export your signing-key backup and keep its password safely. The installer action requires a recorded export/import for the output's signing identity.
 4. Apply the selected patches. Processing continues in a foreground service when the activity is backgrounded or rotated. An interrupted run can be restarted; incomplete output is never offered for installation.
 5. Save the APK, or offer it to Android's installer. Android may require you to allow installations from this patcher first.
@@ -35,7 +35,9 @@ Subsequent compatible builds retain `com.singlecellsoftware.caustic` and use you
 
 **AAudio:** the latest recovery variant from that investigation. Caustic's audio options show **AAudio** in place of **OpenSL ES** when this patch is selected. AudioTrack and AudioRecord remain available. The engine/client remain at 44.1 kHz. Includes minimum-aware latency presets, stream lifecycle guards and route recovery. Selecting only AAudio leaves the original MIDI behavior, including its crash, intact.
 
-Both patches preserve the Android manifest, resources and assets. MIDI-only preserves the original ARM64 native engine; AAudio changes only its nine-byte options label, preserving engine code and offsets. Unsupported native ABI directories are removed from the output.
+**Graphics pacing:** skips the native busy-wait frame limiter and lets the existing display presentation path pace rendering, without an artificial 60 FPS cap. Independent of MIDI and AAudio. The upstream experiment measured greatly reduced GL-thread CPU at about 60 FPS on one device; 120 Hz behavior and sustained playback/recording/export remain untested.
+
+All three patches preserve the Android manifest, resources and assets. MIDI-only preserves the original ARM64 native engine; AAudio changes only its nine-byte options label, and Graphics pacing replaces one four-byte branch instruction. Library length and engine offsets are preserved. The patcher verifies the original APK and exact native patch inputs/outputs; the audio bridge retains native initialization guards without whole-library runtime hashing. Unsupported native ABI directories are removed from the output.
 
 ## Signing and backup
 

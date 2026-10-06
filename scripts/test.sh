@@ -33,7 +33,7 @@ with ZipFile(sys.argv[1]) as apk:
     Path('build/native-tests/libcaustic.so').write_bytes(apk.read('lib/arm64-v8a/libcaustic.so'))
 PY
 build/native-tests/audio_forwarding_test "$PWD/build/native-tests/libforward.so" "$PWD/build/native-tests/libcaustic.so"
-for variant in 1 2 3; do
+for variant in 1 2 3 4 5 6 7; do
     apksigner verify --verbose "build/integration/variant-$variant.apk"
     zipalign -c -P 16 4 "build/integration/variant-$variant.apk"
 done

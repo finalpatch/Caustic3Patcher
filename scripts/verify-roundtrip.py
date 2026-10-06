@@ -20,11 +20,12 @@ stock = decode(original, 'original')
 expected_midi = decode(prepared / 'midi/unsigned.apk', 'expected-midi')
 expected_both = decode(prepared / 'aaudio/unsigned.apk', 'expected-both')
 checks = 0
-for mask in (1, 2, 3):
+for mask in range(1, 8):
     actual = decode(root / f'build/integration/variant-{mask}.apk', f'actual-{mask}')
-    expected = expected_midi if mask == 1 else expected_both
+    selection = mask & 3
+    expected = stock if selection == 0 else expected_midi if selection == 1 else expected_both
     wanted = {p.relative_to(expected): p.read_text() for p in expected.rglob('*.smali')}
-    if mask == 2:
+    if selection == 2:
         for rel in list(wanted):
             if str(rel).startswith('com/singlecellsoftware/caustic/midi/'):
                 del wanted[rel]
@@ -39,4 +40,4 @@ for mask in (1, 2, 3):
     for path in wanted:
         assert wanted[path] == result[path], f'Variant {mask} changed unexpected bytecode: {path}'
         checks += 1
-print(f'PASS: {checks} complete disassembled classes match independently rebuilt expectations across three variants.')
+print(f'PASS: {checks} complete disassembled classes match independently rebuilt expectations across seven variants.')
