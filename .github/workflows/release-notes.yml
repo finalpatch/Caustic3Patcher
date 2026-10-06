@@ -1,0 +1,29 @@
+name: Update published release notes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/releases/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  notes:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Apply maintained notes to existing releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          for notes in .github/releases/*.md; do
+            tag=$(basename "$notes" .md)
+            gh release view "$tag" > /dev/null
+            gh release edit "$tag" --notes-file "$notes"
+          done

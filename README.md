@@ -64,7 +64,7 @@ For your own patcher release key, set both `PATCHER_KEYSTORE` and `PATCHER_KEY_P
 
 ## GitHub releases
 
-Pushing a stable version tag such as `v0.1.1` runs `.github/workflows/release.yml` on Ubuntu 24.04 with Java 21 and Android SDK 36. It checks the bundled dependencies, runs portable regression tests, builds/signs the patcher, verifies its signature/alignment/package version, and publishes a GitHub Release with `Caustic3Patcher-v0.1.1.apk` and `SHA256SUMS`. The workflow builds the checked-in patch assets; it does not download or redistribute the original Caustic APK and cannot run the proprietary-input integration/device tests.
+Pushing a stable version tag such as `v0.1.1` runs `.github/workflows/release.yml` on Ubuntu 24.04 with Java 21 and Android SDK 36. It checks the bundled dependencies, runs portable regression tests, builds/signs the patcher, verifies its signature/alignment/package version, and publishes a GitHub Release with `Caustic3Patcher-v0.1.1.apk` and `SHA256SUMS`. Release notes list commits since the preceding reachable version tag and link the full comparison, followed by download/signing guidance. Corrections to published notes are maintained in `.github/releases/vX.Y.Z.md`; pushing those files to `main` updates the corresponding release descriptions without replacing APKs or tags. The workflow builds the checked-in patch assets; it does not download or redistribute the original Caustic APK and cannot run the proprietary-input integration/device tests.
 
 Configure these **repository Actions secrets** once:
 

@@ -24,6 +24,7 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Set up Java 21
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -79,6 +80,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          python scripts/release-notes.py "$RELEASE_TAG" "$GITHUB_REPOSITORY" > "$RUNNER_TEMP/release-notes.md"
           if gh release view "$RELEASE_TAG" --json isDraft > "$RUNNER_TEMP/release-state.json" 2>/dev/null; then
             python - <<'PY'
           import json, os, sys
@@ -88,7 +90,8 @@ jobs:
           PY
           else
             gh release create "$RELEASE_TAG" --verify-tag --draft --title "$RELEASE_TAG" \
-              --notes-file .github/release-notes.md
+              --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
+          gh release edit "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
           gh release upload "$RELEASE_TAG" "dist/Caustic3Patcher-${RELEASE_TAG}.apk" dist/SHA256SUMS --clobber
           gh release edit "$RELEASE_TAG" --draft=false

@@ -1,9 +1,5 @@
 Unofficial Caustic 3 Patcher for ARM64 devices running Android 11 or newer.
 
-- Select the exact official Caustic 3.2.2 64-bit APK, choose MIDI repair and/or AAudio, and produce a signed patched APK entirely on-device.
-- AAudio builds show **AAudio** in Caustic's audio options.
-- Export your per-installation Caustic signing-key backup and keep its password so future patched builds remain updatable.
-
 Download `Caustic3Patcher-vX.Y.Z.apk` below. `SHA256SUMS` contains its checksum. No original or patched Caustic APK is distributed in this release.
 
 **Replacing a locally signed development patcher:** if its signing certificate differs from this release, export the Caustic signing key through the installed patcher before uninstalling that patcher. Install this release and import the backup. Caustic itself does not need to be uninstalled for this patcher migration.
