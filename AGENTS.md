@@ -1,3 +1,7 @@
+This is the sister project of ../recaustic. recaustic reverse engineers the Caustic3 Android app and develops enhancement mods. In this project, we produce an Android patcher app that takes the upstream apk and offer to patch it with a number of optional mods and repackage it into a patched app.
+
+See the other .md files for more details.
+
 # Code-change review workflow
 
 - Before editing code, explain the proposed approach and confirm it with the user. Wait for approval before implementation. Read-only investigation may proceed to inform the proposal. Confirm material changes to the approved approach.
